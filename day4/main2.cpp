@@ -195,10 +195,9 @@ int main(int argc, char *argv[])
         listPlayFields.push_back(curPlayField);
         stream.close();
 
-        bool bingo = false;
         auto it = random.begin();
         auto end = random.end();
-        while ((it != end) && !bingo)
+        while (it != end)
         {
             // pull a number from the list and tag the number on each playfield
             std::cout << "### " << *it << " ###\n";
