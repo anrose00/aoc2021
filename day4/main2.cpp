@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
                 else
                     il++;
             }
-            // if only one playfield is left and is has bingo status, we are done
+            // if only one playfield is left and it has bingo status, we are done
             if (listPlayFields.size() == 1 && listPlayFields.front()->isBingo())
             {
                 std::cout << "Result: " << listPlayFields.front()->calcAocResult() << '\n';
