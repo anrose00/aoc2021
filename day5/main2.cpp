@@ -1,4 +1,4 @@
-/* https://adventofcode.com/2021/day/5 - Part 1 */
+/* https://adventofcode.com/2021/day/5 - Part 2 */
 
 #include <istream>
 #include <iostream>
@@ -91,7 +91,6 @@ class Grid {
         }
         void makeLine(const GeLine _gl)
         {
-            /* this could be beautified - see part 2 */
             if (_gl.x0 == _gl.x1)
             {
                 int y0,y1;
@@ -125,6 +124,26 @@ class Grid {
                 int y = _gl.y0;
                 for (auto x=x0;x<=x1;x++)
                     grid[y][x] += 1;
+            }
+            else {
+                /* The special cases above could also be adapted to a pattern 
+                   like this. Perhaps use generics? */
+                int dx = _gl.x0 - _gl.x1;
+                int dy = _gl.y0 - _gl.y1;
+                if (abs(dx / dy) == 1)
+                {
+                    dx = (dx > 0)?-1:1;
+                    dy = (dy > 0)?-1:1;
+                    int x = _gl.x0;
+                    int y = _gl.y0;
+                    int end = _gl.x1+dx;
+                    while (x != end)
+                    {
+                        grid[y][x] += 1;
+                        x += dx;
+                        y += dy;
+                    }
+                }
             }
         }
         int countHotSpots()
@@ -168,11 +187,14 @@ int main(int argc, char *argv[])
             }
         }
         stream.close();
-
+        char c;
         Grid g = Grid(max);
         for (auto gl : listPoints )
         {
             g.makeLine(gl);
+            // std::cout << "###" << gl << "###" << '\n';
+            // std::cout << g << '\n';
+            // std::cin >> c;
         }
         std::cout << "Result: "<< g.countHotSpots() << '\n';
     }
