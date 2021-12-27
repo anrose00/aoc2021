@@ -52,19 +52,21 @@ bool isOnlyWhiteSpace(std::string _str)
 }
 
 // tokenize input string and answer a vector of integers
-vector<int> &tokenizeNumbers(const std::string &input)
+vector<int> tokenizeNumbers(const std::string &input)
 {
-    vNumbers *tokens = new vNumbers();
+    vNumbers tokens = vNumbers();
     int next=0,last = 0;
     int inputSize = input.size();
     while (next<inputSize)
     {
+        int num;
         while (isdigit(input[next]) && next<inputSize) next++;
-        tokens->push_back(stoi(input.substr(last,next-last),nullptr,10));
+        num = stoi(input.substr(last,next-last),nullptr,10);
+        tokens.push_back(num);
         while (!isdigit(input[next]) && next<inputSize) next++;
         last = next;
     }
-    return *tokens;    
+    return tokens;    
 }
 
 int getMax(int start, const vNumbers _vn)

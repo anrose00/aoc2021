@@ -132,29 +132,29 @@ bool isOnlyWhiteSpace(std::string _str)
     return true;
 }
 // tokenize input string using delim and answer a vector of integers
-vector<int> &tokenize(const std::string &input, char delim)
+vector<int> tokenize(const std::string &input, char delim)
 {
-    vNumbers *tokens = new vNumbers();
+    vNumbers tokens = vNumbers();
     int next,last = 0;
     while ((next = input.find(delim,last)) != std::string::npos)
     {
-        tokens->push_back(stoi(input.substr(last,next-last),nullptr,10));
+        tokens.push_back(stoi(input.substr(last,next-last),nullptr,10));
         last = next + 1;
     }
-    return *tokens;    
+    return tokens;    
 }
 // tokenize input string by using count chars
-vector<int> &tokenizeCount(const std::string &input, int count)
+vector<int> tokenizeCount(const std::string &input, int count)
 {
-    vNumbers *tokens = new vNumbers();
+    vNumbers tokens = vNumbers();
     int next=count,last = 0;
     while (last < input.size())
     {
-        tokens->push_back(stoi(input.substr(last,next-last),nullptr,10));
+        tokens.push_back(stoi(input.substr(last,next-last),nullptr,10));
         last = next;
         next = last + count;
     }
-    return *tokens;    
+    return tokens;    
 }
 
 int main(int argc, char *argv[])

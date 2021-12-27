@@ -16,9 +16,10 @@
 #include <algorithm>
 
 #define CHAR_SPACE 32
+#define MAX_FISH_STATE 8
 
 using std::vector;
-using vNumbers = vector<long long>;
+using vNumbers = vector<uint64_t>;
 
 
 // debug helper to print vector using <<
@@ -38,9 +39,9 @@ bool isOnlyWhiteSpace(std::string _str)
 }
 
 // tokenize input string and answer a vector of integers
-vector<long long> &tokenizeNumbers(const std::string &input)
+vector<uint64_t> tokenizeNumbers(const std::string &input)
 {
-    vNumbers *tokens = new vNumbers();
+    vNumbers tokens = vNumbers();
     int next=0,last = 0;
     int inputSize = input.size();
     while (next<inputSize)
@@ -48,11 +49,11 @@ vector<long long> &tokenizeNumbers(const std::string &input)
         int num;
         while (isdigit(input[next]) && next<inputSize) next++;
         num = stoi(input.substr(last,next-last),nullptr,10);
-        tokens->push_back((uint8_t)num);
+        tokens.push_back(num);
         while (!isdigit(input[next]) && next<inputSize) next++;
         last = next;
     }
-    return *tokens;    
+    return tokens;    
 }
 
 int main(int argc, char *argv[])
@@ -62,7 +63,6 @@ int main(int argc, char *argv[])
     vNumbers lfishList;
     vNumbers fishStates = {0,0,0,0,0,0,0,0,0};
     
-
     int max=0;
     if (argc == 2)
     {
@@ -85,13 +85,13 @@ int main(int argc, char *argv[])
         {
             // std::cout << fishStates << '\n';
             long long tmp = fishStates[0];
-            for (auto i=0;i<8;i++)
+            for (auto i=0;i<MAX_FISH_STATE;i++)
                 fishStates[i] = fishStates[i+1];
-            fishStates[8] = tmp;
+            fishStates[MAX_FISH_STATE] = tmp;
             fishStates[6] += tmp;
         }
         long long count=0;
-        for (auto i=0;i<8;i++)
+        for (auto i=0;i<MAX_FISH_STATE;i++)
             count += fishStates[i];
 
         std::cout << "Result: "<< count << '\n';
