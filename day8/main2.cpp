@@ -25,11 +25,11 @@
 #define BR 32   // BOTTOM RIGHT
 #define BT 64   // BOTTOM
 
-#define SE_A 1
-#define SE_B 2
-#define SE_C 4
-#define SE_D 8
-#define SE_E 16
+#define SE_A 1  // With this list, we encode the input char sequences
+#define SE_B 2  // the assignment of char to number is arbitrary, but
+#define SE_C 4  // each char must correspond to a single bit
+#define SE_D 8  // (as each char corresponds to a single LED on for the
+#define SE_E 16 // 7 segment display
 #define SE_F 32
 #define SE_G 64
 #define SE_ALL 127
@@ -52,16 +52,6 @@ bool isWhiteSpace(char c)
     return c == CHAR_SPACE || c == CHAR_LF || c == CHAR_CR;
 }
 
-bool isOnlyWhiteSpace(std::string _str)
-{
-    for (const auto& c : _str)
-    {
-        if (c > CHAR_SPACE )
-            return false;
-    }
-    return true;
-}
-
 // tokenize input string and answer a vector of alpha strings
 vector<std::string> tokenizeWords(const std::string &input)
 {
@@ -77,28 +67,35 @@ vector<std::string> tokenizeWords(const std::string &input)
         while (isalpha(input[next]) && next<inputSize) next++;
         token = input.substr(last,next-last);
         tokens.push_back(token);
+        // skip whitespace up to first non white space
         while (isWhiteSpace(input[next]) && next<inputSize) next++;
         last = next;
     }
     return tokens;    
 }
 
-int countBits(int num)  // use IA 486 opcode
+// use IA Nehalem opcode
+// https://en.wikipedia.org/wiki/SSE4#POPCNT_and_LZCNT
+// use an int as a set of bits - popcnt answers the num of bits set with a single instruction
+// if it's an old CPU, you must do this "by foot"
+int countBits(int num)  
 {
     return __builtin_popcount(num);
 }
 
+// we have a list of numbers in the input vector - 
+// answer a list with those numbers that have the required amount of bits set
 std::list<int> candidatesOfLen(std::vector<int> &input , int len)
 {
     auto result = std::list<int>();
     for (auto i : input)
         if (countBits(i) == len)
-        {
             result.push_back(i);
-        }
     return result;
 }
 
+// encode the character input sequence as a set of bits representing
+// the SEGMENTS of the 7 segment display
 int asSegInt(std::string input)
 {
     int result = 0;
@@ -132,7 +129,8 @@ int asSegInt(std::string input)
     return result;
 }
 
-std::vector<int> encoded(std::vector<std::string> input)
+// encode a list of input strings as as list of integers
+std::vector<int> encodedAsSegInt(std::vector<std::string> input)
 {
     auto result = std::vector<int>();
     for (auto string : input)
@@ -140,7 +138,7 @@ std::vector<int> encoded(std::vector<std::string> input)
     return result;
 }
 
-/* strategy:
+/* strategy for building the wiring map: (abbreviations: see defines at start)
     - we encode each char into a bit - so we have numbers with 1 ... 7 bits set
     - this way we can easily detect common bit (bit and) or removing the same bits (bit xor)
     
@@ -154,9 +152,9 @@ std::vector<int> encoded(std::vector<std::string> input)
 std::map<int,int> buildWiringMap(std::vector<std::string> inputS)
 {
     auto wmap = std::map<int,int>();
-    auto input = encoded(inputS);
+    auto input = encodedAsSegInt(inputS);
     std::list<int> cndd,cndd2;
-    int code,code2,tmp;
+    int code,code2;
     std::ios_base::fmtflags f( std::cout.flags() );
     std::cout << std::hex << std::uppercase;
 
@@ -183,7 +181,7 @@ std::map<int,int> buildWiringMap(std::vector<std::string> inputS)
     // "8"
     // since this is an invariant, we can use the define
     // building the diff between 8 and 6,9,0 is exactly one segment
-    // building the diff with stuff we know already, lets you determine TR/MD/BL
+    // building the diff with stuff we know already, lets us determine TR/MD/BL
     cndd2 = candidatesOfLen(input,6);   // encodings for 6,9,0 
     for (auto tmp : cndd2)
     {
@@ -199,17 +197,19 @@ std::map<int,int> buildWiringMap(std::vector<std::string> inputS)
             wmap.insert(std::make_pair(BL,mask));
         }
     }
-    // now its easy to determine BR
+    // now its easy to determine BR - remove the bit which is TR
     wmap.at(BR) ^= wmap.at(TR);
     // now we should know TP, TR, MD, BR
     std::cout << "TR:" << wmap.at(TR) << LF;
     std::cout << "MD:" << wmap.at(MD) << LF;
     std::cout << "BR:" << wmap.at(BR) << LF;
     std::cout << "BL:" << wmap.at(BL) << LF;
-    // because MD is known, we can now determine TL
+    // because MD is known, we can now determine TL - remove the bit for MD
     wmap.at(TL) ^= wmap.at(MD);
     std::cout << "TL:" << wmap.at(TL) << LF;
-    // now we know 6 segments - the seventh can be deducted 
+    // now we know 6 segments - the seventh can be deducted
+    // iterate over know bits an remove them from SE_ALL 
+    // the remaining bit must be BT
     code = SE_ALL;
     for (auto pair : wmap)
         code ^=pair.second;
@@ -219,6 +219,11 @@ std::map<int,int> buildWiringMap(std::vector<std::string> inputS)
     return wmap;
 }
 
+// translate a list of input string using a wiring map
+// we build a map, that has a mapping which LED-BITs corresponds to the number shown
+// we encode in input string, then check the bits we have in the wiring map
+// and collect the bits which this code represents. Finally we can access the
+// segmentNrMap and have the shown integer.
 int translate(std::map<int,int> &wmap, std::vector<std::string> inputS)
 {
     static auto segmentNrMap = std::map<int,int>();
@@ -233,7 +238,7 @@ int translate(std::map<int,int> &wmap, std::vector<std::string> inputS)
     segmentNrMap.insert(std::make_pair(TP+TL+TR+MD+BR+BT,9));
     segmentNrMap.insert(std::make_pair(TP+TL+TR+BR+BL+BT,0));
 
-    auto input = encoded(inputS);
+    auto input = encodedAsSegInt(inputS);
 
     std::cout << "translate map input: " <<  inputS << LF;
     std::cout << "translate map input (E): " <<   input << LF;
@@ -253,7 +258,6 @@ int translate(std::map<int,int> &wmap, std::vector<std::string> inputS)
     }
     return result;
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -286,7 +290,9 @@ int main(int argc, char *argv[])
             // take string right of | for decoding
             substringRight = line.substr(indexBar,line.length()-indexBar);
             {
+                //  build wiring map from left part
                 wiringMap = buildWiringMap(tokenizeWords(substringLeft));
+                // translate codes from right part using wiring map
                 code = translate(wiringMap,tokenizeWords(substringRight));
                 codes.push_back(code);
             }
