@@ -9,12 +9,12 @@
 #include <cctype>
 #include <algorithm>
 #include <climits>
-#include <list>
+#include <set>
 
 #define CHAR_SPACE 32
 
 using std::vector;
-using std::list;
+using std::set;
 using vNumbers = vector<int>;
 
 
@@ -35,37 +35,25 @@ bool isOnlyWhiteSpace(std::string _str)
 }
 
 struct Coord {
-    int x;
-    int y;
+    uint16_t x;
+    uint16_t y;
 
-    Coord(int _x, int _y) {
+    Coord(uint16_t _x, uint16_t _y) {
         x = _x;
         y = _y;
     }
     bool operator == (const Coord & _c) {
         return x == _c.x && y == _c.y;
     }
+    bool operator < (const Coord & _c) const {
+        return ((x << 16) + y) < ((_c.x << 16) + _c.y);
+    }
 };
 
-std::ostream & operator<<(std::ostream &os, list<Coord> &list) { 
-    for( auto c : list) 
+std::ostream & operator<<(std::ostream &os, set<Coord> &_set) { 
+    for( auto c : _set) 
         std::cout << '[' << c.x << ',' << c.y << ']';
     return os;
-}
-
-bool contains(list<Coord> & listOfElements, const Coord & element)
-{
-    // Find the iterator if element in list
-    auto it = listOfElements.begin();
-    while (it != listOfElements.end())
-    {
-        if (*it == element)
-            break;
-        it++;
-    }
-    //return if iterator points to end or not. If it points to end then it means element
-    // does not exists in list
-    return it != listOfElements.end();
 }
 
 class Grid {
@@ -114,8 +102,8 @@ class Grid {
         }
         void enlargeBy(int f)
         {
-            int cur_x=sizeX(),cur_y=sizeY();
-            int new_x=cur_x*f,new_y=cur_y*f;
+            uint16_t cur_x=sizeX(),cur_y=sizeY();
+            uint16_t new_x=cur_x*f,new_y=cur_y*f;
             for (auto y=0;y<cur_y;y++)
                 grid[y].resize(new_x,0);
             for (auto y=cur_y;y<new_y;y++)
@@ -129,7 +117,7 @@ class Grid {
                 }
         }
 
-        Coord findShortestEdge(vector<vector<int>> const &dist, list<Coord> const &pqueue)
+        Coord findShortestEdge(vector<vector<int>> const &dist, set<Coord> const &pqueue)
         {
             int min = INT_MAX;
             Coord min_c = Coord(-1,-1);
@@ -148,14 +136,14 @@ class Grid {
         int dijkstra()
         {
             auto dist = vector<vector<int>>();
-            auto pqueue = list<Coord>();
+            auto pqueue = set<Coord>();
 
             for (auto y=0; y < sizeY(); y++)
             {
                 dist.push_back(vector<int>(sizeX(),INT_MAX));
                 for (auto x=0; x < sizeX(); x++)
                 {
-                    pqueue.push_back(Coord(x,y));
+                    pqueue.insert(Coord(x,y));
                 }
             }
             dist[0][0] = 0;
@@ -167,22 +155,39 @@ class Grid {
                 if ((min_c.x == sizeX()-1) && (min_c.y == sizeY()-1))
                     return dist[min_c.x][min_c.y];
 
-                if ((min_c.x < sizeX()-1) && contains(pqueue,Coord(min_c.x+1,min_c.y)) )
+                if ((min_c.x < sizeX()-1) && pqueue.count(Coord(min_c.x+1,min_c.y)) )
                 {
-                    int distRight = dist[min_c.x][min_c.y] + element(min_c.x+1,min_c.y);
+                    int ndist = dist[min_c.x][min_c.y] + element(min_c.x+1,min_c.y);
 
-                    if (distRight < dist[min_c.x+1][min_c.y] )
-                        dist[min_c.x+1][min_c.y] = distRight;
+                    if (ndist < dist[min_c.x+1][min_c.y] )
+                        dist[min_c.x+1][min_c.y] = ndist;
                 }
-                if ((min_c.y < sizeY()-1) && contains(pqueue,Coord(min_c.x,min_c.y+1)) )
+                if ((min_c.y < sizeY()-1) && pqueue.count(Coord(min_c.x,min_c.y+1)) )
                 {
-                    int distRight = dist[min_c.x][min_c.y] + element(min_c.x,min_c.y+1);
+                    int ndist = dist[min_c.x][min_c.y] + element(min_c.x,min_c.y+1);
 
-                    if (distRight < dist[min_c.x][min_c.y+1] )
-                        dist[min_c.x][min_c.y+1] = distRight;
+                    if (ndist < dist[min_c.x][min_c.y+1] )
+                        dist[min_c.x][min_c.y+1] = ndist;
                 }
-                pqueue.remove(min_c);
-                std::cout << pqueue.size() << '\n';
+
+                if ((min_c.x > 1) && pqueue.count(Coord(min_c.x-1,min_c.y)) )
+                {
+                    int ndist = dist[min_c.x][min_c.y] + element(min_c.x-1,min_c.y);
+
+                    if (ndist < dist[min_c.x-1][min_c.y] )
+                        dist[min_c.x-1][min_c.y] = ndist;
+                }
+                if ((min_c.y > 1) && pqueue.count(Coord(min_c.x,min_c.y-1)) )
+                {
+                    int ndist = dist[min_c.x][min_c.y] + element(min_c.x,min_c.y-1);
+
+                    if (ndist < dist[min_c.x][min_c.y-1] )
+                        dist[min_c.x][min_c.y-1] = ndist;
+                }
+
+                pqueue.erase(min_c);
+                if ( pqueue.size() % 1000 == 0)
+                    std::cout << pqueue.size() << '\n';
             }
             return INT_MAX;
         }
@@ -224,7 +229,7 @@ int main(int argc, char *argv[])
         stream.close();
         grid.enlargeBy(5);
         std::cout << grid << '\n';
-       
-        std::cout << "Result: "<<  grid.dijkstra() << '\n';
+        auto result = grid.dijkstra();
+        std::cout << "Result: "<< result << '\n';
     }
 }
